@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login / Register</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f7f7f7;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        .form-container {
+            margin: 20px auto;
+            width: 300px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            border-radius: 5px;
+        }
+        .form-container label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-container input, .form-container select, .form-container button {
+            width: 100%;
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        .form-container button {
+            background-color: #4CAF50;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .form-container button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Daily Bugle</h1>
+    <h2>Register or Login</h2>
+
+    <!-- Register Section -->
+    <div class="form-container">
+        <h3>Register</h3>
+        <label for="reg-username">Username:</label>
+        <input type="text" id="reg-username" placeholder="Enter username">
+
+        <label for="reg-password">Password:</label>
+        <input type="password" id="reg-password" placeholder="Enter password">
+
+        <label for="reg-role">Role:</label>
+        <select id="reg-role">
+            <option value="Reader">Reader</option>
+            <option value="Editor">Editor</option>
+        </select>
+
+        <button onclick="registerUser()">Register</button>
+    </div>
+
+    <!-- Login Section -->
+    <div class="form-container">
+        <h3>Login</h3>
+        <label for="login-username">Username:</label>
+        <input type="text" id="login-username" placeholder="Enter username">
+
+        <label for="login-password">Password:</label>
+        <input type="password" id="login-password" placeholder="Enter password">
+
+        <button onclick="loginUser()">Login</button>
+    </div>
+
+    <script>
+        const authServiceUrl = '/auth';
+
+        // Register a new user
+        async function registerUser() {
+            const username = document.getElementById('reg-username').value;
+            const password = document.getElementById('reg-password').value;
+            const role = document.getElementById('reg-role').value;
+
+            if (!username || !password || !role) {
+                alert('Please fill in all fields to register.');
+                return;
+            }
+
+            const payload = {
+                username,
+                password,
+                roles: [role]
+            };
+
+            try {
+                const response = await fetch(`${authServiceUrl}/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload),
+                });
+
+                const result = await response.text();
+                if (response.ok) {
+                    alert(result);
+                    document.getElementById('reg-username').value = '';
+                    document.getElementById('reg-password').value = '';
+                    document.getElementById('reg-role').value = 'Reader';
+                } else {
+                    alert(`Error: ${result}`);
+                }
+            } catch (error) {
+                console.error('Error registering user:', error);
+            }
+        }
+
+        // Login an existing user
+        async function loginUser() {
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+
+            if (!username || !password) {
+                alert('Please fill in both fields to login.');
+                return;
+            }
+
+            const payload = {
+                username,
+                password,
+            };
+
+            try {
+                const response = await fetch(`${authServiceUrl}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload),
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    alert('Login successful!');
+                    const sessionID = result.sessionID;
+
+                    // Fetch user permissions and redirect to the appropriate view
+                    const permissionsResponse = await fetch(`${authServiceUrl}/permissions?sessionID=${sessionID}`);
+                    const permissions = await permissionsResponse.json();
+
+                    if (permissions.roles.includes('Reader')) {
+                        window.location.href = 'reader.html';
+                    } else if (permissions.roles.includes('Editor')) {
+                        window.location.href = 'editor.html';
+                    }
+                } else {
+                    alert(`Error: ${result.message}`);
+                }
+            } catch (error) {
+                console.error('Error logging in:', error);
+            }
+        }
+    </script>
+</body>
+</html>
