@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Bugle</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            text-align: right;
+        }
+        header button {
+            background-color: #f04;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        header button:hover {
+            background-color: #c03;
+        }
+        .container {
+            padding: 20px;
+        }
+        .headliner {
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .headliner h1 {
+            font-size: 2em;
+            margin: 0 0 10px 0;
+        }
+        .headliner p {
+            font-size: 1.2em;
+        }
+        .article-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .article {
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #fdfdfd;
+        }
+        .article h2 {
+            margin: 0 0 5px 0;
+            font-size: 1.5em;
+        }
+        .article p {
+            font-size: 1em;
+            margin: 0;
+        }
+        .ad-container {
+            margin-top: 20px;
+            text-align: center;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #f7f7f7;
+        }
+        .ad-container img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <button onclick="navigateToLogin()">Login/Register</button>
+    </header>
+    <div class="container">
+        <div id="headliner" class="headliner"></div>
+        <div class="article-list" id="article-list"></div>
+        <div class="ad-container" id="ad-container"></div>
+    </div>
+
+    <script>
+        // Function to navigate to login page
+        function navigateToLogin() {
+            window.location.href = "login.html";
+        }
+
+        // Fetch articles from the Article Microservice
+        async function fetchArticles() {
+            try {
+                const response = await fetch('/articles/read');
+                const articles = await response.json();
+
+                // Sort articles by date_created (most recent first)
+                articles.sort((a, b) => new Date(b.date_created) - new Date(a.date_created));
+
+                // Display the headliner
+                const headliner = articles[0];
+                document.getElementById('headliner').innerHTML = `
+                    <h1>${headliner.title}</h1>
+                    <p>${headliner.body}</p>
+                `;
+
+                // Display the next 3 articles
+                const articleList = articles.slice(1, 4);
+                const articleListContainer = document.getElementById('article-list');
+                articleList.forEach(article => {
+                    const articleDiv = document.createElement('div');
+                    articleDiv.classList.add('article');
+                    articleDiv.innerHTML = `
+                        <h2>${article.title}</h2>
+                        <p>${article.teaser}</p>
+                    `;
+                    articleListContainer.appendChild(articleDiv);
+                });
+            } catch (error) {
+                console.error('Error fetching articles:', error);
+            }
+        }
+
+        // Fetch ad from the Ad Microservice
+        async function fetchAd() {
+            try {
+                const response = await fetch('/ads/ad');
+                const ad = await response.json();
+
+                // Display the ad
+                document.getElementById('ad-container').innerHTML = `
+                    <h3>${ad.title}</h3>
+                    <p>${ad.description}</p>
+                    <a href="${ad.url}" target="_blank">
+                        <img src="${ad.image}" alt="${ad.title}">
+                    </a>
+                `;
+            } catch (error) {
+                console.error('Error fetching ad:', error);
+            }
+        }
+
+        // Initialize homepage
+        fetchArticles();
+        fetchAd();
+    </script>
+</body>
+</html>

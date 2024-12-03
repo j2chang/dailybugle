@@ -111,12 +111,17 @@ app.get('/permissions', async (req, res) => {
             return res.status(401).send("Invalid session");
         }
 
-        res.send({ roles: user.Roles });
+        // Include username in the response
+        res.send({
+            roles: user.Roles,
+            username: user.Username // Add the username field here
+        });
     } catch (error) {
         console.error(error);
         res.status(500).send("Error checking permissions");
     }
 });
+
 
 // (Delete) Delete User
 app.post('/delete', async (req, res) => {
