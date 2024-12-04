@@ -69,7 +69,7 @@ app.post('/comment', async (req, res) => {
 
         // Add comment to the article's comments array
         const result = await db.collection(COLLECTION_ARTICLE).updateOne(
-            { _id: ObjectId(articleId) }, // Ensure articleId is parsed correctly
+            { _id: new ObjectId(articleId) }, // Ensure articleId is parsed correctly
             { $push: { comments: newComment } }
         );
 
