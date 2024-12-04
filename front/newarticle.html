@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Article</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f7f7f7;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .username {
+            cursor: pointer;
+        }
+        .username:hover {
+            text-decoration: underline;
+        }
+        .article-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .article-title input,
+        .article-teaser textarea,
+        .article-body textarea,
+        .article-tags input {
+            width: 100%;
+            font-size: 1em;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .article-body img {
+            display: block;
+            margin: 10px auto;
+            max-width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .editor-buttons {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .editor-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="username" onclick="logout()">User: <span id="username"></span></div>
+    </header>
+
+    <div class="article-container">
+        <input id="article-title" type="text" placeholder="Article Title">
+        <textarea id="article-teaser" rows="2" placeholder="Article Teaser"></textarea>
+        <textarea id="article-body" rows="10" placeholder="Article Body"></textarea>
+        <input id="article-tags" type="text" placeholder="Article Tags (comma-separated)">
+        <input id="article-image" type="file" accept="image/*">
+        <img id="article-image-preview" src="" alt="Article Image" style="display:none;">
+    </div>
+
+    <div class="editor-buttons">
+        <button class="editor-button" onclick="createArticle()">Finish Article</button>
+    </div>
+
+    <script>
+        const articleServiceUrl = '/articles';
+        const sessionID = localStorage.getItem('sessionID');
+        let username = '';
+
+        if (!sessionID) {
+            alert('Session expired. Please log in again.');
+            window.location.href = 'index.html';
+        }
+
+        async function fetchUsername() {
+            try {
+                const response = await fetch(`/auth/permissions?sessionID=${sessionID}`);
+                if (!response.ok) throw new Error('Failed to fetch username');
+                const user = await response.json();
+                username = user.username || 'Guest';
+                document.getElementById('username').innerText = username;
+            } catch (error) {
+                console.error('Error fetching username:', error);
+                username = 'Guest';
+                document.getElementById('username').innerText = username;
+            }
+        }
+
+        async function createArticle() {
+            const title = document.getElementById('article-title').value.trim();
+            const teaser = document.getElementById('article-teaser').value.trim();
+            const body = document.getElementById('article-body').value.trim();
+            const tags = document.getElementById('article-tags').value.trim();
+            const fileInput = document.getElementById('article-image').files[0];
+
+            // Validation: Ensure all fields are filled
+            if (!title || !teaser || !body || !tags || !fileInput) {
+                alert('All fields must be filled, including an image.');
+                return;
+            }
+
+            let imageUrl = ''; // Initialize an empty image URL
+
+            if (fileInput) {
+                const formData = new FormData();
+                formData.append('image', fileInput);
+
+                try {
+                    const uploadResponse = await fetch(`${articleServiceUrl}/upload`, {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (!uploadResponse.ok) {
+                        throw new Error('Failed to upload image');
+                    }
+
+                    const uploadResult = await uploadResponse.json();
+                    imageUrl = uploadResult.imageUrl;
+                } catch (error) {
+                    console.error('Error uploading image:', error);
+                    alert('Image upload failed. Please try again.');
+                    return; // Abort if the image upload fails
+                }
+            }
+
+            const newArticle = {
+                sessionID,
+                articleTitle: title,
+                articleTeaser: teaser,
+                articleAuthor: username, // Use the fetched username as the author
+                articleBody: body,
+                articleTags: tags.split(',').map(tag => tag.trim()),
+                articleImage: imageUrl,
+            };
+
+            try {
+                const response = await fetch(`${articleServiceUrl}/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newArticle),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to create article');
+                }
+
+                alert('Article created successfully!');
+                window.location.href = 'editor.html'; // Redirect to editor.html
+            } catch (error) {
+                console.error('Error creating article:', error);
+                alert('Failed to create article. Please try again.');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('sessionID');
+            window.location.href = 'index.html';
+        }
+
+        // Fetch the username on page load
+        fetchUsername();
+    </script>
+</body>
+</html>

@@ -1,0 +1,613 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anonymous Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f7f7f7;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background-color: #333;
+            padding: 10px;
+            color: white;
+        }
+        .back-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .back-button:hover {
+            background-color: #0056b3;
+        }
+        header button {
+            background-color: #f04;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        header button:hover {
+            background-color: #c03;
+        }
+        .article-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .article-title {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        .article-body {
+            border: 1px solid #ccc;
+            padding: 15px;
+            background-color: white;
+        }
+        .article-body img {
+            display: block;
+            margin: 0 auto 15px auto;
+            width: 400px;
+            height: 250px;
+            object-fit: cover;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .article-body p {
+            text-align: justify;
+            margin: 0;
+        }
+        .article-meta {
+            font-size: 0.9em;
+            color: gray;
+            margin-top: 10px;
+        }
+        .tags {
+            margin-top: 10px;
+        }
+        .tags span {
+            margin-right: 5px;
+            padding: 5px 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f0f0f0;
+        }
+        .comment-container {
+            margin-top: 20px;
+        }
+        .comments {
+            margin-top: 10px;
+        }
+        .comment {
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: white;
+        }
+        .ad-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .ad-container img {
+            width: 100%;
+            max-width: 300px;
+            height: auto;
+        }
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .nav-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        .nav-button:disabled {
+            background-color: gray;
+            cursor: not-allowed;
+        }
+        .search-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .search-bar {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+        }
+        .dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            background: white;
+            z-index: 1000;
+        }
+        .dropdown div {
+            padding: 10px;
+            cursor: pointer;
+            color: black;
+        }
+        .dropdown div:hover {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <button class="back-button" onclick="navigateToIndex()">Back to Home</button>
+        <div class="search-container">
+            <input
+                type="text"
+                id="search-bar"
+                class="search-bar"
+                placeholder="Search articles..."
+                oninput="fetchSearch()"
+            />
+            <div id="dropdown" class="dropdown"></div>
+        </div>
+        <button onclick="navigateToLogin()">Login/Register</button>
+    </header>
+
+    <div class="article-container">
+        <h1 class="article-title" id="article-title"></h1>
+        <div class="article-body" id="article-body"></div>
+        <div class="article-meta" id="article-meta"></div>
+        <div class="tags" id="tags"></div>
+    </div>
+
+    <div class="ad-container" id="ad-container"></div>
+
+    <div class="comment-container">
+        <h3>Comments</h3>
+        <div class="comments" id="comments"></div>
+    </div>
+
+    <div class="navigation">
+        <button class="nav-button" id="prev-button" onclick="navigateArticle(-1)">← Newer</button>
+        <button class="nav-button" id="next-button" onclick="navigateArticle(1)">Older →</button>
+    </div>
+
+    <script>
+        const articleServiceUrl = '/articles';
+        const commentServiceUrl = '/commentserv';
+        const adServiceUrl = '/ads';
+        const searchServiceUrl = '/searchbar';
+
+        let articles = [];
+        let currentArticleIndex = 0;
+
+        async function fetchArticles() {
+            try {
+                const response = await fetch(`${articleServiceUrl}/read`);
+                articles = await response.json();
+                articles.sort((a, b) => new Date(b.date_created) - new Date(a.date_created));
+                displayArticle();
+            } catch (error) {
+                console.error('Error fetching articles:', error);
+            }
+        }
+
+        function displayArticle() {
+            const article = articles[currentArticleIndex];
+            if (!article) return;
+
+            document.getElementById('article-title').innerText = article.title;
+
+            const imageHTML = article.image
+                ? `<img src="${article.image}" alt="${article.title}">`
+                : '';
+
+            document.getElementById('article-body').innerHTML = `
+                ${imageHTML}
+                <p>${article.body}</p>
+            `;
+
+            document.getElementById('article-meta').innerText = `By ${article.author} | Created: ${new Date(
+                article.date_created
+            ).toLocaleDateString()} | Edited: ${new Date(article.date_edited).toLocaleDateString()}`;
+
+            document.getElementById('tags').innerHTML = article.tags
+                .map(tag => `<span>${tag}</span>`)
+                .join('');
+
+            fetchAd();
+            fetchComments(article._id);
+        }
+
+        async function fetchAd() {
+            try {
+                const response = await fetch(`${adServiceUrl}/ad`);
+                const ad = await response.json();
+                document.getElementById('ad-container').innerHTML = `
+                    <h3>${ad.title}</h3>
+                    <p>${ad.description}</p>
+                    <a href="${ad.url}" target="_blank">
+                        <img src="${ad.image}" alt="${ad.title}">
+                    </a>
+                `;
+            } catch (error) {
+                console.error('Error fetching ad:', error);
+            }
+        }
+
+        async function fetchComments(articleId) {
+            try {
+                const response = await fetch(`${commentServiceUrl}/comments/${articleId}`);
+                const comments = await response.json();
+                document.getElementById('comments').innerHTML = comments
+                    .map(comment => `<div class="comment"><strong>${comment.username}</strong>: ${comment.body}</div>`)
+                    .join('');
+            } catch (error) {
+                console.error('Error fetching comments:', error);
+            }
+        }
+
+        async function fetchSearch() {
+            try {
+                const response = await fetch(`${searchServiceUrl}/search`);
+                const dropdown = document.getElementById('dropdown');
+                const query = document.getElementById('search-bar').value.toLowerCase();
+                const articles = await response.json();
+
+                const filteredArticles = articles.filter(article =>
+                    article.title.toLowerCase().includes(query)
+                );
+
+                dropdown.innerHTML = filteredArticles
+                    .map(article => `<div onclick="goToArticle('${encodeURIComponent(article._id)}')">${article.title}</div>`)
+                    .join('');
+
+                dropdown.style.display = filteredArticles.length > 0 ? 'block' : 'none';
+            } catch (error) {
+                console.error('Error fetching search data:', error);
+            }
+        }
+
+        function goToArticle(encodedArticleId) {
+            const articleId = decodeURIComponent(encodedArticleId);
+            const index = articles.findIndex(article => article._id === articleId);
+            if (index >= 0) {
+                currentArticleIndex = index;
+                displayArticle();
+            }
+        }
+
+        function navigateToIndex() {
+            window.location.href = 'index.html';
+        }
+
+        function navigateToLogin() {
+            window.location.href = 'login.html';
+        }
+
+        function navigateArticle(direction) {
+            currentArticleIndex += direction;
+            if (currentArticleIndex < 0) currentArticleIndex = 0;
+            if (currentArticleIndex >= articles.length) currentArticleIndex = articles.length - 1;
+            displayArticle();
+        }
+
+        fetchArticles();
+    </script>
+</body>
+</html> -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anonymous Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f7f7f7;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background-color: #333;
+            padding: 10px;
+            color: white;
+        }
+        .back-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .back-button:hover {
+            background-color: #0056b3;
+        }
+        header button {
+            background-color: #f04;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        header button:hover {
+            background-color: #c03;
+        }
+        .article-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .article-title {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        .article-body {
+            border: 1px solid #ccc;
+            padding: 15px;
+            background-color: white;
+        }
+        .article-body img {
+            display: block;
+            margin: 0 auto 15px auto;
+            width: 400px;
+            height: 250px;
+            object-fit: cover;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .article-body p {
+            text-align: justify;
+            margin: 0;
+        }
+        .article-meta {
+            font-size: 0.9em;
+            color: gray;
+            margin-top: 10px;
+        }
+        .tags {
+            margin-top: 10px;
+        }
+        .tags span {
+            margin-right: 5px;
+            padding: 5px 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f0f0f0;
+        }
+        .comment-container {
+            margin-top: 20px;
+        }
+        .comments {
+            margin-top: 10px;
+        }
+        .comment {
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: white;
+        }
+        .ad-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .ad-container img {
+            width: 100%;
+            max-width: 300px;
+            height: auto;
+        }
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .nav-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        .nav-button:disabled {
+            background-color: gray;
+            cursor: not-allowed;
+        }
+        .search-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .search-bar {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+        }
+        .dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            background: white;
+            z-index: 1000;
+        }
+        .dropdown div {
+            padding: 10px;
+            cursor: pointer;
+            color: black;
+        }
+        .dropdown div:hover {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <button class="back-button" onclick="navigateToIndex()">Back to Home</button>
+        <div class="search-container">
+            <input
+                type="text"
+                id="search-bar"
+                class="search-bar"
+                placeholder="Search articles..."
+                oninput="fetchSearch()"
+            />
+            <div id="dropdown" class="dropdown"></div>
+        </div>
+        <button onclick="navigateToLogin()">Login/Register</button>
+    </header>
+
+    <div class="article-container">
+        <h1 class="article-title" id="article-title"></h1>
+        <div class="article-body" id="article-body"></div>
+        <div class="article-meta" id="article-meta"></div>
+        <div class="tags" id="tags"></div>
+    </div>
+
+    <div class="ad-container" id="ad-container"></div>
+
+    <div class="comment-container">
+        <h3>Comments</h3>
+        <div class="comments" id="comments"></div>
+    </div>
+
+    <script>
+        const articleServiceUrl = '/articles';
+        const commentServiceUrl = '/commentserv';
+        const adServiceUrl = '/ads';
+        const searchServiceUrl = '/searchbar';
+
+        function getArticleIdFromQuery() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('articleId');
+        }
+
+        async function fetchArticleById(articleId) {
+            try {
+                const response = await fetch(`${articleServiceUrl}/read`);
+                const articles = await response.json();
+                return articles.find(article => article._id === articleId);
+            } catch (error) {
+                console.error('Error fetching article:', error);
+            }
+        }
+
+        async function displayArticle() {
+            const articleId = getArticleIdFromQuery();
+            const article = await fetchArticleById(articleId);
+
+            if (!article) {
+                alert('Article not found');
+                return;
+            }
+
+            document.getElementById('article-title').innerText = article.title;
+
+            const imageHTML = article.image
+                ? `<img src="${article.image}" alt="${article.title}">`
+                : '';
+
+            document.getElementById('article-body').innerHTML = `
+                ${imageHTML}
+                <p>${article.body}</p>
+            `;
+
+            document.getElementById('article-meta').innerText = `By ${article.author} | Created: ${new Date(
+                article.date_created
+            ).toLocaleDateString()} | Edited: ${new Date(article.date_edited).toLocaleDateString()}`;
+
+            document.getElementById('tags').innerHTML = article.tags
+                .map(tag => `<span>${tag}</span>`)
+                .join('');
+
+            fetchAd();
+            fetchComments(article._id);
+        }
+
+        async function fetchAd() {
+            try {
+                const response = await fetch(`${adServiceUrl}/ad`);
+                const ad = await response.json();
+                document.getElementById('ad-container').innerHTML = `
+                    <h3>${ad.title}</h3>
+                    <p>${ad.description}</p>
+                    <a href="${ad.url}" target="_blank">
+                        <img src="${ad.image}" alt="${ad.title}">
+                    </a>
+                `;
+            } catch (error) {
+                console.error('Error fetching ad:', error);
+            }
+        }
+
+        async function fetchComments(articleId) {
+            try {
+                const response = await fetch(`${commentServiceUrl}/comments/${articleId}`);
+                const comments = await response.json();
+                document.getElementById('comments').innerHTML = comments
+                    .map(comment => `<div class="comment"><strong>${comment.username}</strong>: ${comment.body}</div>`)
+                    .join('');
+            } catch (error) {
+                console.error('Error fetching comments:', error);
+            }
+        }
+
+        async function fetchSearch() {
+            try {
+                const response = await fetch(`${searchServiceUrl}/search`);
+                const dropdown = document.getElementById('dropdown');
+                const query = document.getElementById('search-bar').value.toLowerCase();
+                const articles = await response.json();
+
+                const filteredArticles = articles.filter(article =>
+                    article.title.toLowerCase().includes(query)
+                );
+
+                dropdown.innerHTML = filteredArticles
+                    .map(article => `<div onclick="redirectToArticle('${encodeURIComponent(article._id)}')">${article.title}</div>`)
+                    .join('');
+
+                dropdown.style.display = filteredArticles.length > 0 ? 'block' : 'none';
+            } catch (error) {
+                console.error('Error fetching search data:', error);
+            }
+        }
+
+        function redirectToArticle(articleId) {
+            window.location.href = `anonymous.html?articleId=${articleId}`;
+        }
+
+        function navigateToIndex() {
+            window.location.href = 'index.html';
+        }
+
+        function navigateToLogin() {
+            window.location.href = 'login.html';
+        }
+
+        displayArticle();
+    </script>
+</body>
+</html>

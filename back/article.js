@@ -1,10 +1,16 @@
 const express = require('express');
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 const bodyParser = require('body-parser');
 const axios = require('axios');
 
 const app = express();
 app.use(bodyParser.json());
+const path = require('path');
+const cors = require('cors');
+app.use(cors());
+
+// Serve static files from the "uploads" directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database configuration
 const DB_URI = "mongodb://localhost:27017";
@@ -39,9 +45,9 @@ async function getUserPermissions(sessionID) {
 // Routes
 // (Create) Create Article
 app.post('/create', async (req, res) => {
-    const { sessionID, articleTitle, articleTeaser, articleAuthor, articleBody, articleTags } = req.body;
+    const { sessionID, articleTitle, articleTeaser, articleAuthor, articleBody, articleTags, articleImage } = req.body;
 
-    if (!sessionID || !articleTitle || !articleTeaser || !articleAuthor || !articleBody || !articleTags) {
+    if (!sessionID || !articleTitle || !articleTeaser || !articleAuthor || !articleBody || !articleTags || !articleImage) {
         return res.status(400).send("Missing fields in request");
     }
 
@@ -52,8 +58,6 @@ app.post('/create', async (req, res) => {
 
     try {
         const db = client.db(DB_NAME);
-        const latestArticle = await db.collection(COLLECTION_NAME).find().sort({ _id: -1 }).limit(1).toArray();
-        // const articleID = latestArticle.length ? latestArticle[0]._id + 1 : 1;
 
         const articleData = {
             _id: new ObjectId(),
@@ -61,6 +65,7 @@ app.post('/create', async (req, res) => {
             teaser: articleTeaser,
             author: articleAuthor,
             body: articleBody,
+            image: articleImage, // New field for image URL
             date_created: new Date(),
             date_edited: new Date(),
             tags: articleTags,
@@ -89,9 +94,9 @@ app.get('/read', async (req, res) => {
 
 // (Update) Update Article
 app.put('/update', async (req, res) => {
-    const { sessionID, id, articleTitle, articleTeaser, articleBody, articleTags } = req.body;
+    const { sessionID, id, articleTitle, articleTeaser, articleBody, articleTags, articleImage } = req.body;
 
-    if (!sessionID || !id || !articleTitle || !articleTeaser || !articleBody || !articleTags) {
+    if (!sessionID || !id || !articleTitle || !articleTeaser || !articleBody || !articleTags || !articleImage) {
         return res.status(400).send("Missing fields in request");
     }
 
@@ -102,12 +107,13 @@ app.put('/update', async (req, res) => {
 
     try {
         const db = client.db(DB_NAME);
-        const articleFilter = { _id: id };
+        const articleFilter = { _id: new ObjectId(id) };
         const updateArticle = {
             $set: {
                 title: articleTitle,
                 teaser: articleTeaser,
                 body: articleBody,
+                image: articleImage, // New field for image URL
                 date_edited: new Date(),
                 tags: articleTags
             }
@@ -140,7 +146,7 @@ app.delete('/delete', async (req, res) => {
 
     try {
         const db = client.db(DB_NAME);
-        const result = await db.collection(COLLECTION_NAME).deleteOne({ _id: id });
+        const result = await db.collection(COLLECTION_NAME).deleteOne({ _id: new ObjectId(id) });
 
         if (result.deletedCount === 0) {
             return res.status(404).send("ARTICLE NOT FOUND");
@@ -151,6 +157,31 @@ app.delete('/delete', async (req, res) => {
         console.error(error);
         res.status(500).send("ARTICLE DELETE FAILURE");
     }
+});
+
+const multer = require('multer');
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/'); // Directory to save images
+    },
+    filename: function (req, file, cb) {
+        cb(null, `${Date.now()}-${file.originalname}`); // Unique file name
+    }
+});
+const upload = multer({ storage });
+
+// Endpoint to upload an image
+app.post('/upload', upload.single('image'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).send("No file uploaded");
+    }
+
+    // Return the URL of the uploaded image
+    const baseUrl = 'http://localhost:3011';
+    const imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
+    res.send({ imageUrl });
 });
 
 // Start the microservice on port 3011
