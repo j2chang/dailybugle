@@ -1,5 +1,5 @@
 const express = require('express');
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 const axios = require('axios');
 const app = express();
 
@@ -41,6 +41,10 @@ app.get('/search', async (req, res) => {
         const db = client.db(DB_NAME);
         const articles = await db.collection(COLLECTION_NAME).find({}, { projection: { title: 1, _id: 1, date_created: 1 } }).toArray();
 
+        articles.forEach(article => {
+            article._id = article._id.toString();
+        });
+
         // Sort articles by date_created (most recent first)
         articles.sort((a, b) => new Date(b.date_created) - new Date(a.date_created));
 
@@ -64,7 +68,7 @@ app.get('/redirect/:articleId', async (req, res) => {
         const db = client.db(DB_NAME);
 
         // Fetch the article by ID
-        const article = await db.collection(COLLECTION_NAME).findOne({ _id: parseInt(articleId) });
+        const article = await db.collection(COLLECTION_NAME).findOne({ _id: new ObjectId(articleId) });
         if (!article) {
             return res.status(404).send("Article not found");
         }
@@ -77,9 +81,9 @@ app.get('/redirect/:articleId', async (req, res) => {
 
         // Redirect based on role
         if (userPermissions.includes("Reader")) {
-            res.redirect(`/reader.html?articleId=${articleId}`);
+            res.redirect(`/reader.html?articleId=${encodeURIComponent(articleId)}`);
         } else if (userPermissions.includes("Editor")) {
-            res.redirect(`/editor.html?articleId=${articleId}`);
+            res.redirect(`/editor.html?articleId=${encodeURIComponent(articleId)}`);
         } else {
             res.status(403).send("Access denied");
         }
