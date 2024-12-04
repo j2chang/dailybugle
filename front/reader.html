@@ -219,15 +219,17 @@
 
         async function fetchAd() {
             try {
-                const response = await fetch(`${adServiceUrl}/ad`);
+                const sessionID = localStorage.getItem('sessionID') || "Guest"; // Fetch sessionID from localStorage
+                const response = await fetch(`${adServiceUrl}/ad?sessionID=${encodeURIComponent(sessionID)}`); // Pass sessionID as a query parameter
                 const ad = await response.json();
 
                 if (ad.title && ad.description && ad.image && ad.url) {
+                    // Update ad rendering logic to track clicks
                     document.getElementById('ad-container').innerHTML = `
                         <div>
                             <h3>${ad.title}</h3>
                             <p>${ad.description}</p>
-                            <a href="${ad.url}" target="_blank">
+                            <a href="javascript:void(0)" onclick="trackAdClick(${ad.ad_id}, '${ad.url}')">
                                 <img src="${ad.image}" alt="${ad.title}" style="width: 300px; height: 200px; object-fit: cover; display: block; margin: 0 auto;">
                             </a>
                         </div>
@@ -240,6 +242,27 @@
                 document.getElementById('ad-container').innerText = 'Error loading ad';
             }
         }
+
+
+        async function trackAdClick(adId, adUrl) {
+            try {
+                const sessionID = localStorage.getItem('sessionID') || "Guest"; // Fetch sessionID from localStorage
+                await fetch(`${adServiceUrl}/ad/click`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        ad_id: adId,
+                        sessionID: sessionID,
+                    }),
+                });
+                window.open(adUrl, "_blank"); // Open the ad in a new tab
+            } catch (error) {
+                console.error("Error tracking ad click:", error);
+            }
+        }
+
 
         async function fetchComments(articleId) {
             try {
@@ -290,6 +313,10 @@
         }
 
         function logout() {
+            // Clear the sessionID from localStorage
+            localStorage.removeItem('sessionID');
+
+            // Redirect the user to the homepage
             window.location.href = 'index.html';
         }
 

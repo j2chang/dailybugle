@@ -301,6 +301,10 @@
         }
 
         function logout() {
+            // Clear the sessionID from localStorage
+            localStorage.removeItem('sessionID');
+
+            // Redirect the user to the homepage
             window.location.href = 'index.html';
         }
 

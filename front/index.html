@@ -49,6 +49,7 @@
         .dropdown div {
             padding: 10px;
             cursor: pointer;
+            color: black;
         }
         .dropdown div:hover {
             background: #f0f0f0;
@@ -140,6 +141,9 @@
     </div>
 
     <script>
+        const adServiceUrl = '/ads';
+        const sessionID = localStorage.getItem('sessionID') || "Guest";
+
         function navigateToLogin() {
             window.location.href = "login.html";
         }
@@ -182,17 +186,39 @@
 
         async function fetchAd() {
             try {
-                const response = await fetch('/ads/ad');
+                const response = await fetch(`${adServiceUrl}/ad?sessionID=${encodeURIComponent(sessionID)}`);
                 const ad = await response.json();
-                document.getElementById('ad-container').innerHTML = `
-                    <h3>${ad.title}</h3>
-                    <p>${ad.description}</p>
-                    <a href="${ad.url}" target="_blank">
-                        <img src="${ad.image}" alt="${ad.title}">
-                    </a>
-                `;
+
+                if (ad.title && ad.description && ad.image && ad.url) {
+                    document.getElementById('ad-container').innerHTML = `
+                        <div>
+                            <h3>${ad.title}</h3>
+                            <p>${ad.description}</p>
+                            <a href="javascript:void(0)" onclick="trackAdClick(${ad.ad_id}, '${ad.url}')">
+                                <img src="${ad.image}" alt="${ad.title}" style="width: 300px; height: 200px; object-fit: cover; display: block; margin: 0 auto;">
+                            </a>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('ad-container').innerText = 'Ad content not available';
+                }
             } catch (error) {
                 console.error('Error fetching ad:', error);
+                document.getElementById('ad-container').innerText = 'Error loading ad';
+            }
+        }
+
+        async function trackAdClick(adId, url) {
+            try {
+                await fetch(`${adServiceUrl}/ad/click`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ad_id: adId, sessionID }),
+                });
+                window.open(url, '_blank');
+            } catch (error) {
+                console.error('Error tracking ad click:', error);
+                window.open(url, '_blank'); // Fallback to opening the URL
             }
         }
 
