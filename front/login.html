@@ -149,7 +149,11 @@
                 const result = await response.json();
                 if (response.ok) {
                     alert('Login successful!');
+
+                    localStorage.setItem('sessionID', result.sessionID);
+
                     const sessionID = result.sessionID;
+                    
 
                     // Fetch user permissions and redirect to the appropriate view
                     const permissionsResponse = await fetch(`${authServiceUrl}/permissions?sessionID=${sessionID}`);

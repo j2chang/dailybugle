@@ -28,7 +28,7 @@ let client;
 // Helper function to get user permissions from the Auth Microservice
 async function getUserPermissions(sessionID) {
     try {
-        const response = await axios.get(`http://localhost:3010/auth/permissions?sessionID=${sessionID}`);
+        const response = await axios.get(`http://localhost:8080/auth/permissions?sessionID=${sessionID}`);
         return response.data.roles;
     } catch (error) {
         console.error("Error fetching user permissions", error);
@@ -53,10 +53,10 @@ app.post('/create', async (req, res) => {
     try {
         const db = client.db(DB_NAME);
         const latestArticle = await db.collection(COLLECTION_NAME).find().sort({ _id: -1 }).limit(1).toArray();
-        const articleID = latestArticle.length ? latestArticle[0]._id + 1 : 1;
+        // const articleID = latestArticle.length ? latestArticle[0]._id + 1 : 1;
 
         const articleData = {
-            _id: articleID,
+            _id: new ObjectId(),
             title: articleTitle,
             teaser: articleTeaser,
             author: articleAuthor,

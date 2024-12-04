@@ -1,5 +1,5 @@
 const express = require('express');
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 const axios = require('axios');
 const app = express();
 
@@ -27,7 +27,7 @@ app.use(express.json());
 // Helper function to get user permissions
 async function getUserPermissions(sessionID) {
     try {
-        const response = await axios.get(`http://localhost:3010/auth/permissions?sessionID=${sessionID}`);
+        const response = await axios.get(`http://localhost:8080/auth/permissions?sessionID=${sessionID}`);
         return response.data.roles;
     } catch (error) {
         console.error("Error fetching user permissions", error);
@@ -43,15 +43,17 @@ app.post('/comment', async (req, res) => {
         return res.status(400).send("Missing fields in request");
     }
 
+    console.log("Received articleId:", articleId, "Type:", typeof articleId);
+
     try {
         // Fetch user permissions and details from the Auth microservice
-        const userResponse = await axios.get(`http://localhost:3010/auth/permissions?sessionID=${sessionID}`);
+        const userResponse = await axios.get(`http://localhost:8080/auth/permissions?sessionID=${sessionID}`);
         const userRoles = userResponse.data.roles;
         const username = userResponse.data.username; // Assuming `auth/permissions` returns the username
 
         // Check if user has the Reader role
-        if (!userRoles || !userRoles.includes("Reader")) {
-            return res.status(403).send("Access denied: Reader role required");
+        if (!userRoles || (!userRoles.includes("Reader") && !userRoles.includes("Editor"))) {
+            return res.status(403).send("Access denied: Reader/Editor role required");
         }
 
         const db = client.db(DB_NAME);
@@ -67,7 +69,7 @@ app.post('/comment', async (req, res) => {
 
         // Add comment to the article's comments array
         const result = await db.collection(COLLECTION_ARTICLE).updateOne(
-            { _id: parseInt(articleId) }, // Ensure articleId is parsed correctly
+            { _id: ObjectId(articleId) }, // Ensure articleId is parsed correctly
             { $push: { comments: newComment } }
         );
 
@@ -89,7 +91,7 @@ app.get('/comments/:articleId', async (req, res) => {
 
     try {
         const db = client.db(DB_NAME);
-        const article = await db.collection(COLLECTION_ARTICLE).findOne({ _id: parseInt(articleId) });
+        const article = await db.collection(COLLECTION_ARTICLE).findOne({ _id: new ObjectId(articleId) });
 
         if (!article) {
             return res.status(404).send("Article not found");
