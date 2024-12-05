@@ -1,6 +1,7 @@
 const express = require('express');
 const { MongoClient } = require('mongodb');
 const app = express();
+const path = require('path')
 
 // Database configuration
 const DB_URI = "mongodb://localhost:27017";
@@ -12,6 +13,7 @@ const COLLECTION_AUTH = "auth"; // Add this for querying the auth collection
 // Define the port for this microservice
 const PORT = 3012;
 const TOTAL_ADS = 5; // Ensure this matches the actual number of ads in your DB
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 let client;
 (async () => {
